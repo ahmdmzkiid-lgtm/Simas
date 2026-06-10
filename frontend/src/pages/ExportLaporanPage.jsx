@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { IconDownload, IconFileSpreadsheet } from '../components/common/Icons';
-import api from '../api/client';
+import api, { API_BASE } from '../api/client';
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function ExportLaporanPage() {
   const [tahun, setTahun] = useState(new Date().getFullYear());
@@ -19,7 +17,7 @@ export default function ExportLaporanPage() {
 
   const downloadFile = async (url, filename) => {
     const token = localStorage.getItem('simas_token');
-    const res = await fetch(`${API_URL}${url}`, {
+    const res = await fetch(`${API_BASE}${url}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Gagal mengunduh');
@@ -34,7 +32,7 @@ export default function ExportLaporanPage() {
   const exportBulanan = async () => {
     setLoadingBulanan(true);
     try {
-      await downloadFile(`/api/export/iuran-bulanan/${tahun}`, `rekap-iuran-bulanan-${tahun}.xlsx`);
+      await downloadFile(`/export/iuran-bulanan/${tahun}`, `rekap-iuran-bulanan-${tahun}.xlsx`);
     } catch (e) {
       alert('Gagal mengexport laporan bulanan');
     } finally {
@@ -45,7 +43,7 @@ export default function ExportLaporanPage() {
   const exportMakam = async () => {
     setLoadingMakam(true);
     try {
-      await downloadFile('/api/export/iuran-makam', 'rekap-pelunasan-makam.xlsx');
+      await downloadFile('/export/iuran-makam', 'rekap-pelunasan-makam.xlsx');
     } catch (e) {
       alert('Gagal mengexport laporan makam');
     } finally {
@@ -58,7 +56,7 @@ export default function ExportLaporanPage() {
     try {
       const params = new URLSearchParams({ tahun: detailTahun });
       if (detailBulan) params.set('bulan', detailBulan);
-      await downloadFile(`/api/export/detail-pembayaran?${params.toString()}`, `detail-pembayaran-${detailBulan ? detailBulan + '-' : ''}${detailTahun}.xlsx`);
+      await downloadFile(`/export/detail-pembayaran?${params.toString()}`, `detail-pembayaran-${detailBulan ? detailBulan + '-' : ''}${detailTahun}.xlsx`);
     } catch (e) {
       alert('Gagal mengexport detail pembayaran');
     } finally {
@@ -72,7 +70,7 @@ export default function ExportLaporanPage() {
       const params = new URLSearchParams();
       if (bulanGabungan) params.set('bulan', bulanGabungan);
       const qs = params.toString();
-      await downloadFile(`/api/export/rekap-gabungan/${tahunGabungan}${qs ? '?' + qs : ''}`, `rekap-gabungan-${tahunGabungan}.xlsx`);
+      await downloadFile(`/export/rekap-gabungan/${tahunGabungan}${qs ? '?' + qs : ''}`, `rekap-gabungan-${tahunGabungan}.xlsx`);
     } catch (e) {
       alert('Gagal mengexport rekap gabungan');
     } finally {

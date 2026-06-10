@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import api from '../api/client';
+import api, { API_BASE } from '../api/client';
 import Modal from '../components/common/Modal';
 import { IconDownload, IconUpload, IconFileSpreadsheet, IconX, IconCheck } from '../components/common/Icons';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-
 const downloadTemplate = async () => {
   const token = localStorage.getItem('simas_token');
-  const res = await fetch(`${API_URL}/api/export/template-warga`, {
+  const res = await fetch(`${API_BASE}/export/template-warga`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (!res.ok) throw new Error('Gagal mengunduh template');
   const blob = await res.blob();
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
