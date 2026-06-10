@@ -3,9 +3,11 @@ import api from '../api/client';
 import Modal from '../components/common/Modal';
 import { IconDownload, IconUpload, IconFileSpreadsheet, IconX, IconCheck } from '../components/common/Icons';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const downloadTemplate = async () => {
   const token = localStorage.getItem('simas_token');
-  const res = await fetch('/api/export/template-warga', {
+  const res = await fetch(`${API_URL}/api/export/template-warga`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const blob = await res.blob();

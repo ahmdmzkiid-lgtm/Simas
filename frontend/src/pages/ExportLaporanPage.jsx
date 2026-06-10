@@ -4,6 +4,8 @@ import api from '../api/client';
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export default function ExportLaporanPage() {
   const [tahun, setTahun] = useState(new Date().getFullYear());
   const [loadingBulanan, setLoadingBulanan] = useState(false);
@@ -17,7 +19,7 @@ export default function ExportLaporanPage() {
 
   const downloadFile = async (url, filename) => {
     const token = localStorage.getItem('simas_token');
-    const res = await fetch(url, {
+    const res = await fetch(`${API_URL}${url}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Gagal mengunduh');
