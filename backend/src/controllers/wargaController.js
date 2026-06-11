@@ -5,7 +5,8 @@ const excelService = require('../services/excelService');
 async function getAll(req, res, next) {
   try {
     const { search, page = 1, limit = 50 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+    const skip = (parseInt(page) - 1) * take;
 
     const where = { created_by: req.user.id };
     if (search) {
@@ -14,12 +15,23 @@ async function getAll(req, res, next) {
         { no_kartu: { contains: search, mode: 'insensitive' } },
       ];
     }
-    const [data, total] = await Promise.all([
-      prisma.warga.findMany({
-        where,
-        skip,
-        take: parseInt(limit),
-        orderBy: Prisma.sql`CAST(no_kartu AS INTEGER) ASC`,
+
+    const [total, sortedRows] = await Promise.all([
+      prisma.warga.count({ where }),
+      prisma.$queryRaw`
+        SELECT id FROM warga
+        WHERE created_by = ${req.user.id}
+        ${search ? Prisma.sql`AND (nama_kk ILIKE ${'%' + search + '%'} OR no_kartu ILIKE ${'%' + search + '%'})` : Prisma.empty}
+        ORDER BY CAST(no_kartu AS INTEGER) ASC
+        LIMIT ${take} OFFSET ${skip}
+      `,
+    ]);
+
+    const ids = sortedRows.map(r => r.id);
+    let data = [];
+    if (ids.length > 0) {
+      data = await prisma.warga.findMany({
+        where: { id: { in: ids } },
         include: {
           iuran_makam: true,
           iuran_bulanan: {
@@ -27,11 +39,12 @@ async function getAll(req, res, next) {
             take: 12,
           },
         },
-      }),
-      prisma.warga.count({ where }),
-    ]);
+      });
+      const idOrder = Object.fromEntries(ids.map((id, i) => [id, i]));
+      data.sort((a, b) => idOrder[a.id] - idOrder[b.id]);
+    }
 
-    res.json({ data, total, page: parseInt(page), limit: parseInt(limit) });
+    res.json({ data, total, page: parseInt(page), limit: take });
   } catch (err) {
     next(err);
   }
