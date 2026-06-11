@@ -2,14 +2,14 @@ const prisma = require('../utils/prisma');
 
 async function getAll(req, res, next) {
   try {
-    const data = await prisma.iuranMakam.findMany({
+    let data = await prisma.iuranMakam.findMany({
       where: { warga: { created_by: req.user.id } },
       include: {
         warga: { select: { no_kartu: true, nama_kk: true, jumlah_jiwa: true } },
         bulanan: { orderBy: [{ tahun: 'asc' }, { bulan: 'asc' }] },
       },
-      orderBy: { warga: { no_kartu: 'asc' } },
     });
+    data.sort((a, b) => parseInt(a.warga.no_kartu) - parseInt(b.warga.no_kartu));
 
     const result = data.map(m => ({
       ...m,

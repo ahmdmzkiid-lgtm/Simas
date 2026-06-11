@@ -8,11 +8,11 @@ async function getAll(req, res, next) {
     if (bulan) where.bulan = parseInt(bulan);
     if (tahun) where.tahun = parseInt(tahun);
 
-    const data = await prisma.iuranBulanan.findMany({
+    let data = await prisma.iuranBulanan.findMany({
       where,
-      orderBy: [{ warga: { no_kartu: 'asc' } }, { tahun: 'desc' }, { bulan: 'desc' }],
       include: { warga: { select: { no_kartu: true, nama_kk: true } } },
     });
+    data.sort((a, b) => parseInt(a.warga.no_kartu) - parseInt(b.warga.no_kartu) || b.tahun - a.tahun || b.bulan - a.bulan);
     res.json(data);
   } catch (err) {
     next(err);
