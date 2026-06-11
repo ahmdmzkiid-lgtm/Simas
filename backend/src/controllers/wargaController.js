@@ -1,3 +1,4 @@
+const { Prisma } = require('@prisma/client');
 const prisma = require('../utils/prisma');
 const excelService = require('../services/excelService');
 
@@ -18,7 +19,7 @@ async function getAll(req, res, next) {
         where,
         skip,
         take: parseInt(limit),
-        orderBy: { no_kartu: 'asc' },
+        orderBy: Prisma.sql`CAST(no_kartu AS INTEGER) ASC`,
         include: {
           iuran_makam: true,
           iuran_bulanan: {
