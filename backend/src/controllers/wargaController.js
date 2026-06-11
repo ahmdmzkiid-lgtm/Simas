@@ -63,7 +63,7 @@ async function create(req, res, next) {
       return res.status(422).json({ message: 'Jumlah jiwa harus lebih dari 0' });
     }
 
-    const existing = await prisma.warga.findUnique({ where: { no_kartu } });
+    const existing = await prisma.warga.findFirst({ where: { no_kartu, created_by: req.user.id } });
     if (existing) {
       return res.status(409).json({ message: 'No Kartu sudah terdaftar' });
     }

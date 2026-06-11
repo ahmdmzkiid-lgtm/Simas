@@ -37,8 +37,8 @@ async function processImport(filePath, mode, tarifMakam, tarifBulanan, created_b
       continue;
     }
 
-    const existing = await prisma.warga.findUnique({
-      where: { no_kartu: row.no_kartu },
+    const existing = await prisma.warga.findFirst({
+      where: { no_kartu: row.no_kartu, created_by },
       include: { iuran_makam: true },
     });
 
@@ -67,7 +67,7 @@ async function processImport(filePath, mode, tarifMakam, tarifBulanan, created_b
       const tagihanPerBulanBaru = row.jumlah_jiwa * tarifMakam;
       const tagihanBaru = tagihanPerBulanBaru * 36;
       await prisma.warga.update({
-        where: { no_kartu: row.no_kartu },
+        where: { no_kartu_created_by: { no_kartu: row.no_kartu, created_by } },
         data: {
           nama_kk: row.nama_kk,
           jumlah_jiwa: row.jumlah_jiwa,

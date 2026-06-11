@@ -9,7 +9,7 @@ datasource db {
 
 model Warga {
   id          Int             @id @default(autoincrement())
-  no_kartu    String          @unique @db.VarChar(50)
+  no_kartu    String          @db.VarChar(50)
   nama_kk     String          @db.VarChar(255)
   jumlah_jiwa Int             @default(1)
   created_by  Int
@@ -20,7 +20,7 @@ model Warga {
   iuran_makam   IuranMakam?
   creator       Users         @relation(fields: [created_by], references: [id])
 
-  @@index([no_kartu])
+  @@unique([no_kartu, created_by])
   @@map("warga")
 }
 
