@@ -160,8 +160,8 @@ async function rekapTahunan(req, res, next) {
           select: { bulan: true, jumlah_bayar: true, status: true },
         },
       },
-      orderBy: { no_kartu: 'asc' },
     });
+    wargaList.sort((a, b) => parseInt(a.no_kartu) - parseInt(b.no_kartu));
 
     const rekap = wargaList.map(w => {
       const bulanMap = {};

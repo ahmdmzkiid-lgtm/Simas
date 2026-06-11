@@ -209,8 +209,8 @@ async function rekapTahunan(req, res, next) {
           },
         },
       },
-      orderBy: { no_kartu: 'asc' },
     });
+    wargaList.sort((a, b) => parseInt(a.no_kartu) - parseInt(b.no_kartu));
 
     const rekap = wargaList.map(w => {
       const bulanMap = {};
