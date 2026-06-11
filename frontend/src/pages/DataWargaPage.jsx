@@ -255,7 +255,6 @@ export default function DataWargaPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>#</th>
                 <th>No Kartu</th>
                 <th>Nama KK</th>
                 <th>Jiwa</th>
@@ -266,16 +265,15 @@ export default function DataWargaPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24 }}>Memuat...</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24 }}>Memuat...</td></tr>
               ) : warga.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-tertiary)' }}>Belum ada data warga</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-tertiary)' }}>Belum ada data warga</td></tr>
               ) : (
-                warga.map((w, i) => {
+                warga.map(w => {
                   const tagihan = parseFloat(w.iuran_makam?.total_tagihan || 0);
                   const terbayar = parseFloat(w.iuran_makam?.total_terbayar || 0);
                   return (
                     <tr key={w.id}>
-                      <td style={{ textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 12 }}>{(page - 1) * 20 + i + 1}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{w.no_kartu}</td>
                       <td>{w.nama_kk}</td>
                       <td>{w.jumlah_jiwa}</td>

@@ -18,7 +18,7 @@ async function getAll(req, res, next) {
         where,
         skip,
         take: parseInt(limit),
-        orderBy: { created_at: 'desc' },
+        orderBy: { no_kartu: 'asc' },
         include: {
           iuran_makam: true,
           iuran_bulanan: {
