@@ -8,6 +8,7 @@ const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', '
 export default function IuranBulananPage() {
   const [rekap, setRekap] = useState([]);
   const [tahun, setTahun] = useState(new Date().getFullYear());
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedWarga, setSelectedWarga] = useState(null);
@@ -18,14 +19,16 @@ export default function IuranBulananPage() {
   const fetchRekap = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/iuran-bulanan/rekap/${tahun}`);
+      const params = {};
+      if (search) params.search = search;
+      const res = await api.get(`/iuran-bulanan/rekap/${tahun}`, { params });
       setRekap(res.data.data);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [tahun]);
+  }, [tahun, search]);
 
   useEffect(() => { fetchRekap(); }, [fetchRekap]);
 
@@ -89,6 +92,13 @@ export default function IuranBulananPage() {
       <div className="page-header">
         <h1 className="page-title">Iuran Bulanan</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className="input"
+            style={{ maxWidth: 260, minWidth: 160 }}
+            placeholder="Cari No Kartu / Nama KK..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
           <select className="input" style={{ maxWidth: 100 }} value={tahun} onChange={e => setTahun(parseInt(e.target.value))}>
             {[2024, 2025, 2026, 2027].map(t => <option key={t} value={t}>{t}</option>)}
           </select>

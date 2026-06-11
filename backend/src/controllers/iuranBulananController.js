@@ -148,9 +148,17 @@ async function remove(req, res, next) {
 async function rekapTahunan(req, res, next) {
   try {
     const tahun = parseInt(req.params.tahun) || new Date().getFullYear();
+    const { search } = req.query;
+    const where = { created_by: req.user.id };
+    if (search) {
+      where.OR = [
+        { nama_kk: { contains: search, mode: 'insensitive' } },
+        { no_kartu: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const wargaList = await prisma.warga.findMany({
-      where: { created_by: req.user.id },
+      where,
       select: {
         id: true,
         no_kartu: true,
