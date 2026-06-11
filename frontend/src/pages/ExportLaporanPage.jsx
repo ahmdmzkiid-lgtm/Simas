@@ -134,7 +134,7 @@ export default function ExportLaporanPage() {
             <div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>Rekap Gabungan Iuran</div>
               <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
-                Gabungan iuran bulanan & iuran makam per warga per tahun
+                Gabungan iuran bulanan & iuran makam per warga per tahun, dan bisa difilter perbulan
               </div>
             </div>
           </div>
