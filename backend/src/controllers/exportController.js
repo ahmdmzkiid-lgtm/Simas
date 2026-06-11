@@ -811,30 +811,47 @@ async function exportDetailPembayaran(req, res, next) {
       ? new Date(filterTahun, parseInt(bulan), 0)
       : new Date(filterTahun, 11, 31);
 
-    const makam = await prisma.iuranMakamBulanan.findMany({
-      where: { tanggal_bayar: { gte: tglAwal, lte: tglAkhir }, iuran_makam: { warga: { created_by: req.user.id } } },
+    let wargaList = await prisma.warga.findMany({
+      where: { created_by: req.user.id },
       include: {
         iuran_makam: {
-          include: { warga: { select: { no_kartu: true, nama_kk: true, jumlah_jiwa: true } } },
+          include: {
+            bulanan: { where: { tanggal_bayar: { gte: tglAwal, lte: tglAkhir } } },
+          },
         },
       },
-      orderBy: [{ tanggal_bayar: 'desc' }, { iuran_makam: { warga: { no_kartu: 'asc' } } }],
     });
 
+    const bayar = wargaList.filter(w => w.iuran_makam?.bulanan?.length > 0);
+    const belumBayar = wargaList.filter(w => !w.iuran_makam?.bulanan?.length);
+    bayar.sort((a, b) => {
+      const aTgl = new Date(a.iuran_makam.bulanan[0].tanggal_bayar);
+      const bTgl = new Date(b.iuran_makam.bulanan[0].tanggal_bayar);
+      return bTgl - aTgl;
+    });
+    belumBayar.sort((a, b) => a.nama_kk.localeCompare(b.nama_kk));
+    wargaList = [...bayar, ...belumBayar];
+
     const allRows = [];
-    const makamGroup = {};
-    for (const m of makam) {
-      const k = `${m.iuran_makam.warga_id}-${new Date(m.tanggal_bayar).toISOString().slice(0, 10)}`;
-      if (!makamGroup[k]) {
-        makamGroup[k] = { tanggal_bayar: m.tanggal_bayar, no_kartu: m.iuran_makam.warga.no_kartu, nama_kk: m.iuran_makam.warga.nama_kk, jumlah_jiwa: m.iuran_makam.warga.jumlah_jiwa, bulanList: [], total: 0 };
+    for (const w of bayar) {
+      const makamGroup = {};
+      for (const m of w.iuran_makam.bulanan) {
+        const k = `${w.id}-${new Date(m.tanggal_bayar).toISOString().slice(0, 10)}`;
+        if (!makamGroup[k]) {
+          makamGroup[k] = { tanggal_bayar: m.tanggal_bayar, no_kartu: w.no_kartu, nama_kk: w.nama_kk, jumlah_jiwa: w.jumlah_jiwa, bulanList: [], total: 0 };
+        }
+        makamGroup[k].bulanList.push({ index: m.bulan, name: BULAN_INDONESIA[m.bulan - 1] });
+        makamGroup[k].total += parseFloat(m.jumlah_bayar);
       }
-      makamGroup[k].bulanList.push({ index: m.bulan, name: BULAN_INDONESIA[m.bulan - 1] });
-      makamGroup[k].total += parseFloat(m.jumlah_bayar);
-    }
-    for (const v of Object.values(makamGroup)) {
-      allRows.push(v);
+      for (const v of Object.values(makamGroup)) {
+        allRows.push(v);
+      }
     }
     allRows.sort((a, b) => new Date(b.tanggal_bayar) - new Date(a.tanggal_bayar));
+
+    for (const w of belumBayar) {
+      allRows.push({ no_kartu: w.no_kartu, nama_kk: w.nama_kk, jumlah_jiwa: w.jumlah_jiwa, belumBayar: true });
+    }
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Detail Pembayaran');
@@ -874,20 +891,42 @@ async function exportDetailPembayaran(req, res, next) {
 
     for (const r of allRows) {
       const row = sheet.getRow(rowIndex);
-      row.getCell(1).value = new Date(r.tanggal_bayar).toLocaleDateString('id-ID');
-      row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(2).value = r.no_kartu;
-      row.getCell(2).font = { name: 'Consolas' };
-      row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(3).value = r.nama_kk;
-      row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(4).value = r.jumlah_jiwa;
-      row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(5).value = r.bulanList.sort((a, b) => a.index - b.index).map(b => b.name).join(', ');
-      row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-      row.getCell(6).value = r.total;
-      row.getCell(6).numFmt = 'Rp #,##0';
-      row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      if (r.belumBayar) {
+        row.getCell(1).value = '-';
+        row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(2).value = r.no_kartu;
+        row.getCell(2).font = { name: 'Consolas' };
+        row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(3).value = r.nama_kk;
+        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(4).value = r.jumlah_jiwa;
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(5).value = 'Belum bayar';
+        row.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+        row.getCell(5).font = { color: { argb: 'FF999999' }, italic: true };
+        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(6).value = 0;
+        row.getCell(6).numFmt = 'Rp #,##0';
+        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+      } else {
+        row.getCell(1).value = new Date(r.tanggal_bayar).toLocaleDateString('id-ID');
+        row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(2).value = r.no_kartu;
+        row.getCell(2).font = { name: 'Consolas' };
+        row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(3).value = r.nama_kk;
+        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(4).value = r.jumlah_jiwa;
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(5).value = r.bulanList.sort((a, b) => a.index - b.index).map(b => b.name).join(', ');
+        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        row.getCell(6).value = r.total;
+        row.getCell(6).numFmt = 'Rp #,##0';
+        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        grandTotal += r.total;
+      }
 
       for (let c = 1; c <= 6; c++) {
         const cell = row.getCell(c);
@@ -898,7 +937,6 @@ async function exportDetailPembayaran(req, res, next) {
         cell.alignment = cell.alignment || { horizontal: 'center', vertical: 'middle' };
       }
 
-      grandTotal += r.total;
       rowIndex++;
     }
 
