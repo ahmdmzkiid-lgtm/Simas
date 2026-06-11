@@ -82,7 +82,7 @@ async function create(req, res, next) {
       return res.status(409).json({ message: 'No Kartu sudah terdaftar' });
     }
 
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
     const tarifMakam = parseInt(settingsMap.tarif_makam_per_jiwa) || 10000;
 
@@ -129,7 +129,7 @@ async function update(req, res, next) {
       return res.status(422).json({ message: 'Jumlah jiwa harus lebih dari 0' });
     }
 
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
     const tarifMakam = parseInt(settingsMap.tarif_makam_per_jiwa) || 10000;
 
@@ -184,7 +184,7 @@ async function importExcel(req, res, next) {
       return res.status(422).json({ message: 'Mode import harus overwrite atau skip' });
     }
 
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
     const tarifMakam = parseInt(settingsMap.tarif_makam_per_jiwa) || 10000;
     const tarifBulanan = parseInt(settingsMap.tarif_bulanan) || 10000;

@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 
 async function getAll(req, res, next) {
   try {
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const result = Object.fromEntries(settings.map(s => [s.key, s.value]));
     res.json(result);
   } catch (err) {
@@ -26,13 +26,13 @@ async function update(req, res, next) {
 
     for (const [key, value] of Object.entries(updates)) {
       await prisma.settings.upsert({
-        where: { key },
+        where: { key_created_by: { key, created_by: req.user.id } },
         update: { value: String(value) },
-        create: { key, value: String(value) },
+        create: { key, value: String(value), created_by: req.user.id },
       });
     }
 
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const result = Object.fromEntries(settings.map(s => [s.key, s.value]));
     res.json(result);
   } catch (err) {

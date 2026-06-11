@@ -36,7 +36,7 @@ async function create(req, res, next) {
     const warga = await prisma.warga.findFirst({ where: { id: parseInt(warga_id), created_by: req.user.id } });
     if (!warga) return res.status(404).json({ message: 'Warga tidak ditemukan' });
 
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
     const tarifBulanan = parseInt(settingsMap.tarif_bulanan) || 10000;
 
@@ -85,7 +85,7 @@ async function createBulk(req, res, next) {
     const warga = await prisma.warga.findFirst({ where: { id: parseInt(warga_id), created_by: req.user.id } });
     if (!warga) return res.status(404).json({ message: 'Warga tidak ditemukan' });
 
-    const settings = await prisma.settings.findMany();
+    const settings = await prisma.settings.findMany({ where: { created_by: req.user.id } });
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
     const tarifBulanan = parseInt(settingsMap.tarif_bulanan) || 10000;
 

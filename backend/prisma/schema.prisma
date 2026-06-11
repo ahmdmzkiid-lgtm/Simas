@@ -86,14 +86,19 @@ model Users {
   iuran_bulanan       IuranBulanan[]
   iuran_makam_bulanan IuranMakamBulanan[]
   warga               Warga[]
+  settings            Settings[]
 
   @@map("users")
 }
 
 model Settings {
-  key        String   @id @db.VarChar(100)
+  key        String   @db.VarChar(100)
   value      String
+  created_by Int
   updated_at DateTime @updatedAt
 
+  users Users @relation(fields: [created_by], references: [id])
+
+  @@id([key, created_by])
   @@map("settings")
 }
