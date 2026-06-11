@@ -183,4 +183,17 @@ async function importExcel(req, res, next) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove, importExcel };
+async function deleteAll(req, res, next) {
+  try {
+    const count = await prisma.warga.count({ where: { created_by: req.user.id } });
+    if (count === 0) {
+      return res.status(404).json({ message: 'Tidak ada data warga untuk dihapus' });
+    }
+    await prisma.warga.deleteMany({ where: { created_by: req.user.id } });
+    res.json({ message: `Semua data warga (${count}) berhasil dihapus` });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, importExcel, deleteAll };

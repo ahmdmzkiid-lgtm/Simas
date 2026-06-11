@@ -40,7 +40,7 @@ export default function DataWargaPage() {
   const fetchWarga = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 50 };
+      const params = { page, limit: 20 };
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       const res = await api.get('/warga', { params });
@@ -120,6 +120,17 @@ export default function DataWargaPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm('Hapus SEMUA data warga? Data iuran terkait juga akan ikut terhapus. Tindakan ini tidak bisa dibatalkan!')) return;
+    try {
+      await api.delete('/warga');
+      fetchWarga();
+      alert('Semua data warga berhasil dihapus');
+    } catch (e) {
+      alert(e.response?.data?.message || 'Gagal menghapus semua data');
+    }
+  };
+
   return (
     <div className="page">
       <div className="page-header">
@@ -127,6 +138,7 @@ export default function DataWargaPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-secondary" onClick={downloadTemplate}><IconDownload size={14} /> Template</button>
           <button className="btn btn-primary" onClick={openAdd}>+ Tambah Warga</button>
+          <button className="btn btn-danger" onClick={handleDeleteAll}>Hapus Semua</button>
         </div>
       </div>
 
@@ -243,6 +255,7 @@ export default function DataWargaPage() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>No Kartu</th>
                 <th>Nama KK</th>
                 <th>Jiwa</th>
@@ -253,15 +266,16 @@ export default function DataWargaPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24 }}>Memuat...</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24 }}>Memuat...</td></tr>
               ) : warga.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-tertiary)' }}>Belum ada data warga</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-tertiary)' }}>Belum ada data warga</td></tr>
               ) : (
-                warga.map(w => {
+                warga.map((w, i) => {
                   const tagihan = parseFloat(w.iuran_makam?.total_tagihan || 0);
                   const terbayar = parseFloat(w.iuran_makam?.total_terbayar || 0);
                   return (
                     <tr key={w.id}>
+                      <td style={{ textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 12 }}>{(page - 1) * 20 + i + 1}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{w.no_kartu}</td>
                       <td>{w.nama_kk}</td>
                       <td>{w.jumlah_jiwa}</td>
@@ -280,6 +294,17 @@ export default function DataWargaPage() {
             </tbody>
           </table>
         </div>
+        {total > 20 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '0.5px solid var(--color-border)' }}>
+            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+              {total} warga — Halaman {page} dari {Math.ceil(total / 20)}
+            </span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Sebelumnya</button>
+              <button className="btn btn-secondary btn-sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(p => p + 1)}>Selanjutnya</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (

@@ -374,7 +374,7 @@ async function exportIuranMakamBulanan(req, res, next) {
     const tglAwal = new Date(tahun, bulan - 1, 1);
     const tglAkhir = new Date(tahun, bulan, 0);
 
-    const wargaList = await prisma.warga.findMany({
+    let wargaList = await prisma.warga.findMany({
       where: { created_by: req.user.id },
       include: {
         iuran_makam: {
@@ -383,8 +383,17 @@ async function exportIuranMakamBulanan(req, res, next) {
           },
         },
       },
-      orderBy: { nama_kk: 'asc' },
     });
+
+    const bayar = wargaList.filter(w => w.iuran_makam?.bulanan?.length > 0);
+    const belumBayar = wargaList.filter(w => !w.iuran_makam?.bulanan?.length);
+    bayar.sort((a, b) => {
+      const aTgl = new Date(a.iuran_makam.bulanan[0].tanggal_bayar);
+      const bTgl = new Date(b.iuran_makam.bulanan[0].tanggal_bayar);
+      return bTgl - aTgl;
+    });
+    belumBayar.sort((a, b) => a.nama_kk.localeCompare(b.nama_kk));
+    wargaList = [...bayar, ...belumBayar];
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`${namaBulan} ${tahun}`);
@@ -610,6 +619,15 @@ async function exportRekapGabungan(req, res, next) {
       orderBy: [{ tanggal_bayar: 'desc' }, { iuran_makam: { warga: { no_kartu: 'asc' } } }],
     });
 
+    const semuaWarga = await prisma.warga.findMany({
+      where: { created_by: req.user.id },
+      select: { no_kartu: true, nama_kk: true, jumlah_jiwa: true },
+    });
+
+    const wargaWithPayment = new Set();
+    for (const b of bulanan) wargaWithPayment.add(b.warga.no_kartu);
+    for (const m of makam) wargaWithPayment.add(m.iuran_makam.warga.no_kartu);
+
     const group = {};
     for (const b of bulanan) {
       const k = `${b.warga_id}-${new Date(b.tanggal_bayar).toISOString().slice(0, 10)}`;
@@ -628,7 +646,12 @@ async function exportRekapGabungan(req, res, next) {
       group[k].totalMakam += parseFloat(m.jumlah_bayar);
     }
 
-    const allRows = Object.values(group).sort((a, b) => new Date(b.tanggal_bayar) - new Date(a.tanggal_bayar));
+    const paidRows = Object.values(group).sort((a, b) => new Date(b.tanggal_bayar) - new Date(a.tanggal_bayar));
+    const unpaidRows = semuaWarga
+      .filter(w => !wargaWithPayment.has(w.no_kartu))
+      .sort((a, b) => a.nama_kk.localeCompare(b.nama_kk))
+      .map(w => ({ no_kartu: w.no_kartu, nama_kk: w.nama_kk, jumlah_jiwa: w.jumlah_jiwa, belumBayar: true }));
+    const allRows = [...paidRows, ...unpaidRows];
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`Rekap Gabungan ${tahun}`);
@@ -665,33 +688,61 @@ async function exportRekapGabungan(req, res, next) {
 
     for (const r of allRows) {
       const row = sheet.getRow(rowIndex);
-      row.getCell(1).value = new Date(r.tanggal_bayar).toLocaleDateString('id-ID');
-      row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(2).value = r.no_kartu;
-      row.getCell(2).font = { name: 'Consolas' };
-      row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(3).value = r.nama_kk;
-      row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
-      const sortBulan = (a, b) => {
-        const aIsMakam = a.name.startsWith('[Makam]') ? 0 : 1;
-        const bIsMakam = b.name.startsWith('[Makam]') ? 0 : 1;
-        if (aIsMakam !== bIsMakam) return aIsMakam - bIsMakam;
-        return a.index - b.index;
-      };
-      row.getCell(4).value = r.jumlah_jiwa;
-      row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(5).value = r.bulanList.sort(sortBulan).map(b => b.name).join(', ');
-      row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-      row.getCell(6).value = r.totalBulanan;
-      row.getCell(6).numFmt = 'Rp #,##0';
-      row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(7).value = r.totalMakam;
-      row.getCell(7).numFmt = 'Rp #,##0';
-      row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
-      row.getCell(8).value = r.totalBulanan + r.totalMakam;
-      row.getCell(8).numFmt = 'Rp #,##0';
-      row.getCell(8).font = { bold: true };
-      row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      if (r.belumBayar) {
+        row.getCell(1).value = '-';
+        row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(2).value = r.no_kartu;
+        row.getCell(2).font = { name: 'Consolas' };
+        row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(3).value = r.nama_kk;
+        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(4).value = r.jumlah_jiwa;
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(5).value = 'Belum bayar';
+        row.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+        row.getCell(5).font = { color: { argb: 'FF999999' }, italic: true };
+        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(6).value = 0;
+        row.getCell(6).numFmt = 'Rp #,##0';
+        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(7).value = 0;
+        row.getCell(7).numFmt = 'Rp #,##0';
+        row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(8).value = 0;
+        row.getCell(8).numFmt = 'Rp #,##0';
+        row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+      } else {
+        row.getCell(1).value = new Date(r.tanggal_bayar).toLocaleDateString('id-ID');
+        row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(2).value = r.no_kartu;
+        row.getCell(2).font = { name: 'Consolas' };
+        row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(3).value = r.nama_kk;
+        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        const sortBulan = (a, b) => {
+          const aIsMakam = a.name.startsWith('[Makam]') ? 0 : 1;
+          const bIsMakam = b.name.startsWith('[Makam]') ? 0 : 1;
+          if (aIsMakam !== bIsMakam) return aIsMakam - bIsMakam;
+          return a.index - b.index;
+        };
+        row.getCell(4).value = r.jumlah_jiwa;
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(5).value = r.bulanList.sort(sortBulan).map(b => b.name).join(', ');
+        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        row.getCell(6).value = r.totalBulanan;
+        row.getCell(6).numFmt = 'Rp #,##0';
+        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(7).value = r.totalMakam;
+        row.getCell(7).numFmt = 'Rp #,##0';
+        row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(8).value = r.totalBulanan + r.totalMakam;
+        row.getCell(8).numFmt = 'Rp #,##0';
+        row.getCell(8).font = { bold: true };
+        row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        grandTotal += r.totalBulanan + r.totalMakam;
+      }
 
       for (let c = 1; c <= 8; c++) {
         const cell = row.getCell(c);
@@ -702,7 +753,6 @@ async function exportRekapGabungan(req, res, next) {
         cell.alignment = cell.alignment || { horizontal: 'center', vertical: 'middle' };
       }
 
-      grandTotal += r.totalBulanan + r.totalMakam;
       rowIndex++;
     }
 
