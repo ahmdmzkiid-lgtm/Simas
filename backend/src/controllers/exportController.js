@@ -192,7 +192,7 @@ async function exportIuranMakam(req, res, next) {
     infoCell.alignment = { horizontal: 'center' };
 
     const headerRow = sheet.getRow(4);
-    const headers = ['No Kartu', 'Nama KK', 'Jumlah Jiwa', 'Per Bulan', 'Total Tagihan (36 bln)', 'Total Terbayar'];
+    const headers = ['No Kartu', 'Nama KK', 'Jumlah Jiwa', 'Per Bulan', 'Total Tagihan (35 bln)', 'Total Terbayar'];
     headers.forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
       cell.value = h;
@@ -250,7 +250,7 @@ async function exportIuranMakam(req, res, next) {
     sumRow.getCell(2).value = 'TOTAL';
     sumRow.getCell(2).font = { bold: true };
     sumRow.getCell(3).value = '';
-    sumRow.getCell(4).value = totalTarget / 36;
+    sumRow.getCell(4).value = totalTarget / 35;
     sumRow.getCell(4).numFmt = 'Rp #,##0';
     sumRow.getCell(4).font = { bold: true };
     sumRow.getCell(5).value = totalTarget;

@@ -47,7 +47,7 @@ model IuranMakam {
   warga_id         Int             @unique
   total_tagihan    Decimal         @db.Decimal(12, 2)
   tagihan_per_bulan Decimal        @default(0) @db.Decimal(12, 2)
-  jangka_waktu     Int             @default(36)
+  jangka_waktu     Int             @default(35)
   tanggal_mulai    DateTime        @default(now())
   total_terbayar   Decimal         @default(0) @db.Decimal(12, 2)
   updated_at       DateTime        @updatedAt

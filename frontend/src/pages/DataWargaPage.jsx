@@ -19,10 +19,8 @@ const downloadTemplate = async () => {
 
 export default function DataWargaPage() {
   const [warga, setWarga] = useState([]);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editWarga, setEditWarga] = useState(null);
@@ -40,18 +38,17 @@ export default function DataWargaPage() {
   const fetchWarga = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 20 };
+      const params = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       const res = await api.get('/warga', { params });
       setWarga(res.data.data);
-      setTotal(res.data.total);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [search, statusFilter]);
 
   useEffect(() => { fetchWarga(); }, [fetchWarga]);
 
@@ -149,16 +146,16 @@ export default function DataWargaPage() {
             style={{ maxWidth: 280, minWidth: 180 }}
             placeholder="Cari No Kartu / Nama KK..."
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            onChange={e => setSearch(e.target.value)}
           />
-          <select className="input" style={{ maxWidth: 160 }} value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+          <select className="input" style={{ maxWidth: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="">Semua Status</option>
             <option value="Lunas">Lunas</option>
             <option value="Mencicil">Mencicil</option>
             <option value="Belum Bayar">Belum Bayar</option>
           </select>
           <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-            {total} warga
+            {warga.length} warga
           </span>
         </div>
       </div>
@@ -292,17 +289,6 @@ export default function DataWargaPage() {
             </tbody>
           </table>
         </div>
-        {total > 20 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '0.5px solid var(--color-border)' }}>
-            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-              {total} warga — Halaman {page} dari {Math.ceil(total / 20)}
-            </span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Sebelumnya</button>
-              <button className="btn btn-secondary btn-sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(p => p + 1)}>Selanjutnya</button>
-            </div>
-          </div>
-        )}
       </div>
 
       {showModal && (

@@ -124,7 +124,7 @@ export default function ExportLaporanPage() {
             {loadingMakam ? 'Mengunduh...' : 'Download'}
           </button>
           <div style={{ marginTop: 8, fontSize: 11, color: 'var(--color-text-tertiary)' }}>
-            Format: Excel (.xlsx) &middot; Per Bulan × Total 36 bln &middot; Total Terbayar
+            Format: Excel (.xlsx) &middot; Per Bulan × Total 35 bln &middot; Total Terbayar
           </div>
         </div>
 

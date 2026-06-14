@@ -44,7 +44,7 @@ async function processImport(filePath, mode, tarifMakam, tarifBulanan, created_b
 
     if (!existing) {
       const tagihanPerBulan = row.jumlah_jiwa * tarifMakam;
-      const totalTagihan = tagihanPerBulan * 36;
+      const totalTagihan = tagihanPerBulan * 35;
       await prisma.warga.create({
         data: {
           no_kartu: row.no_kartu,
@@ -55,7 +55,7 @@ async function processImport(filePath, mode, tarifMakam, tarifBulanan, created_b
             create: {
               total_tagihan: totalTagihan,
               tagihan_per_bulan: tagihanPerBulan,
-              jangka_waktu: 36,
+              jangka_waktu: 35,
               total_terbayar: 0,
             },
           },
@@ -65,7 +65,7 @@ async function processImport(filePath, mode, tarifMakam, tarifBulanan, created_b
     } else if (mode === 'overwrite') {
       const tagihanLama = parseFloat(existing.iuran_makam?.total_tagihan || 0);
       const tagihanPerBulanBaru = row.jumlah_jiwa * tarifMakam;
-      const tagihanBaru = tagihanPerBulanBaru * 36;
+      const tagihanBaru = tagihanPerBulanBaru * 35;
       await prisma.warga.update({
         where: { no_kartu_created_by: { no_kartu: row.no_kartu, created_by } },
         data: {

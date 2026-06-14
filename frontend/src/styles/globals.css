@@ -373,7 +373,7 @@ table.data-table tr:hover {
 .desktop-actions { display: flex; align-items: center; gap: 8px; }
 .desktop-only { display: inline; }
 @media (max-width: 768px) {
-  .page { padding: 12px; }
+  .page { padding: 12px; padding-bottom: 80px; }
   .page-header { margin-bottom: 12px; }
   .page-title { font-size: 18px; }
   .card { padding: 12px; }

@@ -4,10 +4,7 @@ const excelService = require('../services/excelService');
 
 async function getAll(req, res, next) {
   try {
-    const { search, page = 1, limit = 50 } = req.query;
-    const take = parseInt(limit);
-    const skip = (parseInt(page) - 1) * take;
-
+    const { search, page, limit } = req.query;
     const where = { created_by: req.user.id };
     if (search) {
       where.OR = [
@@ -16,16 +13,47 @@ async function getAll(req, res, next) {
       ];
     }
 
-    const [total, sortedRows] = await Promise.all([
-      prisma.warga.count({ where }),
-      prisma.$queryRaw`
-        SELECT id FROM warga
-        WHERE created_by = ${req.user.id}
-        ${search ? Prisma.sql`AND (nama_kk ILIKE ${'%' + search + '%'} OR no_kartu ILIKE ${'%' + search + '%'})` : Prisma.empty}
-        ORDER BY CAST(no_kartu AS INTEGER) ASC
-        LIMIT ${take} OFFSET ${skip}
-      `,
-    ]);
+    if (page !== undefined) {
+      const take = parseInt(limit || 50);
+      const skip = (parseInt(page) - 1) * take;
+
+      const [total, sortedRows] = await Promise.all([
+        prisma.warga.count({ where }),
+        prisma.$queryRaw`
+          SELECT id FROM warga
+          WHERE created_by = ${req.user.id}
+          ${search ? Prisma.sql`AND (nama_kk ILIKE ${'%' + search + '%'} OR no_kartu ILIKE ${'%' + search + '%'})` : Prisma.empty}
+          ORDER BY CAST(no_kartu AS INTEGER) ASC
+          LIMIT ${take} OFFSET ${skip}
+        `,
+      ]);
+
+      const ids = sortedRows.map(r => r.id);
+      let data = [];
+      if (ids.length > 0) {
+        data = await prisma.warga.findMany({
+          where: { id: { in: ids } },
+          include: {
+            iuran_makam: true,
+            iuran_bulanan: {
+              orderBy: [{ tahun: 'desc' }, { bulan: 'desc' }],
+              take: 12,
+            },
+          },
+        });
+        const idOrder = Object.fromEntries(ids.map((id, i) => [id, i]));
+        data.sort((a, b) => idOrder[a.id] - idOrder[b.id]);
+      }
+
+      return res.json({ data, total, page: parseInt(page), limit: take });
+    }
+
+    const sortedRows = await prisma.$queryRaw`
+      SELECT id FROM warga
+      WHERE created_by = ${req.user.id}
+      ${search ? Prisma.sql`AND (nama_kk ILIKE ${'%' + search + '%'} OR no_kartu ILIKE ${'%' + search + '%'})` : Prisma.empty}
+      ORDER BY CAST(no_kartu AS INTEGER) ASC
+    `;
 
     const ids = sortedRows.map(r => r.id);
     let data = [];
@@ -44,7 +72,7 @@ async function getAll(req, res, next) {
       data.sort((a, b) => idOrder[a.id] - idOrder[b.id]);
     }
 
-    res.json({ data, total, page: parseInt(page), limit: take });
+    res.json({ data, total: data.length });
   } catch (err) {
     next(err);
   }
@@ -87,7 +115,7 @@ async function create(req, res, next) {
     const tarifMakam = parseInt(settingsMap.tarif_makam_per_jiwa) || 10000;
 
     const tagihanPerBulan = jumlah_jiwa * tarifMakam;
-    const jangkaWaktu = 36;
+    const jangkaWaktu = 35;
     const totalTagihan = tagihanPerBulan * jangkaWaktu;
 
     const warga = await prisma.warga.create({
@@ -136,7 +164,7 @@ async function update(req, res, next) {
     let makamUpdate = undefined;
     if (jumlah_jiwa) {
       const tagihanPerBulan = jumlah_jiwa * tarifMakam;
-      const totalTagihan = tagihanPerBulan * 36;
+      const totalTagihan = tagihanPerBulan * 35;
       makamUpdate = {
         update: {
           total_tagihan: totalTagihan,

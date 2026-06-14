@@ -52,7 +52,7 @@ async function main() {
     const existing = await prisma.warga.findUnique({ where: { no_kartu: w.no_kartu } });
     if (!existing) {
       const tagihanPerBulan = w.jumlah_jiwa * 10000;
-      const totalTagihan = tagihanPerBulan * 36;
+      const totalTagihan = tagihanPerBulan * 35;
       await prisma.warga.create({
         data: {
           ...w,
@@ -60,7 +60,7 @@ async function main() {
             create: {
               total_tagihan: totalTagihan,
               tagihan_per_bulan: tagihanPerBulan,
-              jangka_waktu: 36,
+              jangka_waktu: 35,
               total_terbayar: w.jumlah_jiwa === 4 ? 40000 : w.jumlah_jiwa === 3 ? 10000 : 0,
               status: w.jumlah_jiwa === 4 ? 'Lunas' : w.jumlah_jiwa === 3 ? 'Mencicil' : 'Belum Bayar',
             },
